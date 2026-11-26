@@ -5,7 +5,13 @@ const panelURL=chrome.runtime.getURL("panel.html");
 async function read(id){return (await chrome.storage.session.get(key(id)))[key(id)];}
 async function save(id,r){await chrome.storage.session.set({[key(id)]:r});}
 async function withLock(id,fn){while(locks.has(id))await new Promise(r=>setTimeout(r,25));locks.add(id);try{return await fn();}finally{locks.delete(id);}}
-async function sendSite(r,payload){try{const ack=await chrome.tabs.sendMessage(r.siteTab,{job:r.job,provider:r.provider,seq:r.seq,...payload},{frameId:0});return ack?.accepted===true;}catch{return false;}}
+async function sendSite(r,payload){if(!Number.isInteger(r.siteTab))return false;try{const ack=await chrome.tabs.sendMessage(r.siteTab,{job:r.job,provider:r.provider,seq:r.seq,...payload},{frameId:0});return ack?.accepted===true;}catch{return false;}}
+async function deliverResult(r,payload){
+ if(r.source!=="panel")return sendSite(r,payload);
+ const tabs=await chrome.tabs.query({url:"https://next-dev-team.github.io/awesome-daily-tips/*"});const sites=tabs.filter(t=>isSite(t.url));
+ if(sites.length!==1)throw Error("Open exactly one Skillspace page to import; provider submission is already independent.");
+ return sendSite({...r,siteTab:sites[0].id},{...payload,type:"PANEL_RESULT",prompt:r.prompt});
+}
 async function notify(id,r){await sendSite(r,{type:"STATUS",state:r.state,message:r.message||"",tabId:id,url:r.url||PROVIDERS[r.provider]});}
 async function permission(id){return chrome.permissions.contains({origins:[hostPattern(id)]});}
 async function start(id){return withLock(id,async()=>{
@@ -19,13 +25,14 @@ async function start(id){return withLock(id,async()=>{
  catch(e){r.state="blocked";r.message="Injection unavailable; inspect provider before manually submitting. "+String(e.message).slice(0,120);await save(id,r);await notify(id,r);}
  });}
 async function launch(m,sender){
- if(!isSite(sender.url)||!sender.tab||sender.frameId!==0||m.protocol!==BRIDGE_PROTOCOL||!validLaunch(m)||!validMode(m.mode)||typeof m.auto!=="boolean")throw Error("Invalid launch");
+ const fromPanel=sender.url===panelURL&&m.type==="PANEL_LAUNCH";if((!fromPanel&&(!isSite(sender.url)||!sender.tab||sender.frameId!==0))||m.protocol!==BRIDGE_PROTOCOL||!validLaunch(m)||!validMode(m.mode)||typeof m.auto!=="boolean"||(fromPanel&&!m.auto))throw Error("Invalid launch");
+ const siteTab=fromPanel?null:sender.tab.id;
  if(opening)throw Error("Launch already in progress");opening=true;
  try{const all=await chrome.storage.session.get(null);const old=Object.entries(all).filter(([k,v])=>k.startsWith("tab:")&&!fresh(v)).map(([k])=>k);if(old.length)await chrome.storage.session.remove(old);
- const jobKey="job:"+sender.tab.id+":"+m.job;if(all[jobKey])throw Error("Duplicate job");const staleJobs=Object.entries(all).filter(([k,v])=>k.startsWith("job:")&&!fresh(v)).map(([k])=>k);if(staleJobs.length)await chrome.storage.session.remove(staleJobs);
+ const jobKey="job:"+(fromPanel?"panel":siteTab)+":"+m.job;if(all[jobKey])throw Error("Duplicate job");const staleJobs=Object.entries(all).filter(([k,v])=>k.startsWith("job:")&&!fresh(v)).map(([k])=>k);if(staleJobs.length)await chrome.storage.session.remove(staleJobs);
  if(Object.entries(all).filter(([k,v])=>k.startsWith("tab:")&&fresh(v)).length+m.providers.length>21)throw Error("Close some provider tabs first");
  await chrome.storage.session.set({[jobKey]:{created:Date.now()}});let opened=0;const failures=[];
- for(const provider of m.providers){try{const tab=await chrome.tabs.create({url:PROVIDERS[provider],active:false,openerTabId:sender.tab.id});if(!Number.isInteger(tab.id))throw Error("No tab ID");const r={job:m.job,token:crypto.randomUUID(),provider,prompt:m.prompt,siteTab:sender.tab.id,created:Date.now(),auto:m.auto,mode:m.mode,state:"ready",claimed:false,seq:0,text:"",url:PROVIDERS[provider]};await save(tab.id,r);opened++;await notify(tab.id,r);if(m.auto)void start(tab.id).catch(()=>{});}catch{failures.push(provider);}}
+ for(const provider of m.providers){try{if(fromPanel&&!await permission(provider)){failures.push(provider);continue;}const tab=await chrome.tabs.create({url:PROVIDERS[provider],active:false,...(fromPanel?{}:{openerTabId:siteTab})});if(!Number.isInteger(tab.id))throw Error("No tab ID");const r={job:m.job,token:crypto.randomUUID(),provider,prompt:m.prompt,siteTab,source:fromPanel?"panel":"website",created:Date.now(),auto:m.auto,mode:m.mode,state:"ready",claimed:false,seq:0,text:"",url:PROVIDERS[provider]};await save(tab.id,r);opened++;await notify(tab.id,r);if(m.auto)void start(tab.id).catch(()=>{});}catch{failures.push(provider);}}
  return {job:m.job,opened,failures};
  }finally{opening=false;}
 }
@@ -43,13 +50,14 @@ async function reconcile(){
 }
 async function panel(m,sender){
  if(sender.url!==panelURL)throw Error("Only side panel may perform this action");
- if(m.type==="LIST"){await reconcile();const all=await chrome.storage.session.get(null);return {jobs:Object.entries(all).filter(([k,r])=>k.startsWith("tab:")&&fresh(r)).map(([k,r])=>({tabId:Number(k.slice(4)),provider:r.provider,job:r.job,state:r.state,text:r.text,message:r.message,delivered:r.delivered===true,url:r.url,siteTab:r.siteTab,created:r.created}))};}
+ if(m.type==="LIST"){await reconcile();const all=await chrome.storage.session.get(null);return {jobs:Object.entries(all).filter(([k,r])=>k.startsWith("tab:")&&fresh(r)).map(([k,r])=>({tabId:Number(k.slice(4)),provider:r.provider,job:r.job,source:r.source||"website",state:r.state,text:r.text,message:r.message,delivered:r.delivered===true,url:r.url,siteTab:r.siteTab,created:r.created}))};}
+ if(m.type==="PANEL_LAUNCH")return launch(m,sender);
  if(m.type==="DRAFT"){if(typeof m.text!=="string"||!m.text.trim()||m.text.length>50000)throw Error("Invalid draft");const tabs=await chrome.tabs.query({url:"https://next-dev-team.github.io/awesome-daily-tips/*"});const sites=tabs.filter(t=>isSite(t.url));if(sites.length!==1)throw Error("Open exactly one Skillspace main page before sending a draft");const ack=await chrome.tabs.sendMessage(sites[0].id,{type:"DRAFT",text:m.text},{frameId:0});if(!ack?.accepted)throw Error("Main chat rejected draft");await chrome.tabs.update(sites[0].id,{active:true});return {};}
  if(!Number.isInteger(m.tabId))throw Error("Invalid tab");
  const r=await read(m.tabId);if(!fresh(r))throw Error("No current job for this tab");const tab=await chrome.tabs.get(m.tabId);
  if(m.type==="OPEN"){if(!isProvider(tab.url,r.provider))throw Error("Provider tab navigated elsewhere");await chrome.tabs.update(m.tabId,{active:true});return {};}
- if(m.type==="SEND_MAIN")return withLock(m.tabId,async()=>{const current=await read(m.tabId);if(!fresh(current)||!current.text.trim())throw Error("No observed response");if(!await sendSite(current,{type:"RESPONSE",text:current.text,state:current.state==="complete"?"complete":current.state==="partial"?"partial":"incomplete",url:current.url}))throw Error("Main chat did not accept this job; keep the original request open or copy the response manually");current.delivered=true;await save(m.tabId,current);return {};});
- if(m.type==="IMPORT")return withLock(m.tabId,async()=>{const current=await read(m.tabId),target=await chrome.tabs.get(m.tabId);if(!fresh(current)||typeof m.text!=="string"||!m.text.trim()||m.text.length>MAX_RESPONSE||!isProvider(target.url,current.provider))throw Error("Invalid selection");if(!await sendSite(current,{type:"RESPONSE",text:m.text,state:"manual",url:current.url}))throw Error("Main chat did not accept this job; copy the selected response manually");return {};});
+ if(m.type==="SEND_MAIN")return withLock(m.tabId,async()=>{const current=await read(m.tabId);if(!fresh(current)||!current.text.trim())throw Error("No observed response");if(!await deliverResult(current,{type:"RESPONSE",text:current.text,state:current.state==="complete"?"complete":current.state==="partial"?"partial":"incomplete",url:current.url}))throw Error("Main chat did not accept this job; keep the original request open or copy the response manually");current.delivered=true;await save(m.tabId,current);return {};});
+ if(m.type==="IMPORT")return withLock(m.tabId,async()=>{const current=await read(m.tabId),target=await chrome.tabs.get(m.tabId);if(!fresh(current)||typeof m.text!=="string"||!m.text.trim()||m.text.length>MAX_RESPONSE||!isProvider(target.url,current.provider))throw Error("Invalid selection");if(!await deliverResult(current,{type:"RESPONSE",text:m.text,state:"manual",url:current.url}))throw Error("Main chat did not accept this job; copy the selected response manually");return {};});
  if(m.type==="CONTEXT"){if(!isProvider(tab.url,r.provider))throw Error("Provider mismatch or access not granted");return {provider:r.provider,prompt:r.prompt};}
  throw Error("Unknown side panel action");
 }

@@ -16,7 +16,7 @@
  function cleanup(){observer?.disconnect();clearInterval(interval);clearTimeout(timer);running=false;done=true;}
  async function finish(kind,text,message){if(done)return;cleanup();try{await emit(kind,text,message);}catch{}}
  try{
- const origins={chatgpt:"https://chatgpt.com",claude:"https://claude.ai",gemini:"https://gemini.google.com"};if(!a||location.origin!==origins[m.provider])throw Error("Provider origin mismatch");await emit("waiting","","Waiting for unique composer");
+ const origins={chatgpt:"https://chatgpt.com",claude:"https://claude.ai",gemini:"https://gemini.google.com",deepseek:"https://chat.deepseek.com",perplexity:"https://www.perplexity.ai",grok:"https://grok.com",copilot:"https://copilot.microsoft.com"};if(!a||location.origin!==origins[m.provider])throw Error("Provider origin mismatch");await emit("waiting","","Waiting for unique composer");
  const composer=await until(()=>unique(a.composer),20000);if(!composer)throw Error("Composer not found; login, CAPTCHA or UI change may require manual action");
  if(value(composer))throw Error("Composer is not empty; nothing overwritten");
  // Fresh provider tab only. Existing visible turns or an in-progress answer make attribution unsafe.
