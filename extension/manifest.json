@@ -38,5 +38,8 @@
   "side_panel": {
     "default_path": "panel.html"
   },
-  "minimum_chrome_version": "116"
+  "minimum_chrome_version": "116",
+  "host_permissions": [
+    "https://next-dev-team.github.io/*"
+  ]
 }

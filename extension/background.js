@@ -11,11 +11,11 @@ async function permission(id){return chrome.permissions.contains({origins:[hostP
 async function start(id){return withLock(id,async()=>{
  const r=await read(id);if(!fresh(r)||!canStart(r))return;
  const tab=await chrome.tabs.get(id);if(tab.status!=="complete")return;
- if(!isProvider(tab.url,r.provider)){r.state="blocked";r.message="Provider redirected or login required.";await save(id,r);await notify(id,r);return;}
  if(!AUTO_PROVIDERS.includes(r.provider)||!await permission(r.provider)){r.state="blocked";r.message="Automatic adapter or provider permission unavailable. Use manual fill.";await save(id,r);await notify(id,r);return;}
+ if(!isProvider(tab.url,r.provider)){r.state="blocked";r.message="Provider redirected or login required.";await save(id,r);await notify(id,r);return;}
  // Persist claim before injecting. Never retry an ambiguous submission.
  r.claimed=true;r.state="waiting";await save(id,r);await notify(id,r);
- try{await chrome.scripting.executeScript({target:{tabId:id},files:["adapters.js","engine.js"]});await chrome.tabs.sendMessage(id,{type:"START",job:r.job,token:r.token,provider:r.provider,prompt:r.prompt},{frameId:0});}
+ try{await chrome.scripting.executeScript({target:{tabId:id},files:["adapters.js","engine.js"]});const ack=await chrome.tabs.sendMessage(id,{type:"START",job:r.job,token:r.token,provider:r.provider,prompt:r.prompt},{frameId:0});if(!ack?.started)throw Error("DOM engine did not acknowledge");}
  catch(e){r.state="blocked";r.message="Injection unavailable; inspect provider before manually submitting. "+String(e.message).slice(0,120);await save(id,r);await notify(id,r);}
  });}
 async function launch(m,sender){
@@ -45,10 +45,10 @@ async function panel(m,sender){
  if(m.type==="OPEN"){if(!isProvider(tab.url,r.provider))throw Error("Provider tab navigated elsewhere");await chrome.tabs.update(m.tabId,{active:true});return {};}
  if(m.type==="SEND_MAIN"){if(!r.text.trim())throw Error("No observed response");if(!await sendSite(r,{type:"RESPONSE",text:r.text,state:r.state==="complete"?"complete":"manual",url:r.url}))throw Error("Main page is unavailable");return {};}
  if(m.type==="IMPORT"){if(typeof m.text!=="string"||!m.text.trim()||m.text.length>MAX_RESPONSE||!isProvider(tab.url,r.provider))throw Error("Invalid selection");if(!await sendSite(r,{type:"RESPONSE",text:m.text,state:"manual",url:r.url}))throw Error("Main page unavailable");return {};}
- if(m.type==="CONTEXT"){if(!isProvider(tab.url,r.provider))throw Error("Provider mismatch");return {provider:r.provider,prompt:r.prompt};}
+ if(m.type==="CONTEXT"){if(!isProvider(tab.url,r.provider))throw Error("Provider mismatch or access not granted");return {provider:r.provider,prompt:r.prompt};}
  throw Error("Unknown side panel action");
 }
 chrome.runtime.onMessage.addListener((m,sender,reply)=>{if(!m||typeof m.type!=="string")return;const task=m.type==="LAUNCH"?launch(m,sender):m.type==="UPDATE"?update(m,sender):panel(m,sender);task.then(result=>reply({ok:true,...result}),e=>reply({ok:false,job:m.job,error:String(e.message||e).slice(0,300)}));return true;});
-chrome.tabs.onUpdated.addListener((id,info)=>{if(info.status==="complete")void start(id).catch(()=>{});});
+chrome.tabs.onUpdated.addListener((id,info)=>{if(info.status==="complete")void start(id).catch(()=>{});if(info.url)void withLock(id,async()=>{const r=await read(id);if(!fresh(r)||isProvider(info.url,r.provider)||["complete","blocked","uncertain"].includes(r.state))return;r.state=r.claimed?"uncertain":"blocked";r.message="Provider tab navigated away; automation will not retry.";await save(id,r);await notify(id,r);}).catch(()=>{});});
 chrome.tabs.onRemoved.addListener(id=>{void chrome.storage.session.remove(key(id));});
-chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true}).catch(()=>{});
+if(chrome.sidePanel?.setPanelBehavior)chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true}).catch(()=>{});
