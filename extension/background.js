@@ -29,8 +29,9 @@ async function launch(m,sender){
  return {job:m.job,opened,failures};
  }finally{opening=false;}
 }
+async function authorizeClick(m,sender){const id=sender.tab?.id;if(!Number.isInteger(id)||sender.frameId!==0)throw Error("Invalid click sender");return withLock(id,async()=>{const r=await read(id);if(!fresh(r)||!isProvider(sender.url,r.provider)||!canAuthorizeClick(r,m,await permission(r.provider)))throw Error("Click authorization denied; inspect the provider manually");r.clickAuthorized=true;await save(id,r);return {authorized:true};});}
 async function update(m,sender){const id=sender.tab?.id;if(!Number.isInteger(id)||sender.frameId!==0)throw Error("Invalid sender");
- return withLock(id,async()=>{const r=await read(id);if(!fresh(r)||!r.claimed||!isProvider(sender.url,r.provider)||!allowedUpdate(r,m)||["complete","blocked","uncertain"].includes(r.state))throw Error("Invalid or stale update");
+ return withLock(id,async()=>{const r=await read(id);if(!fresh(r)||!r.claimed||!isProvider(sender.url,r.provider)||!await permission(r.provider)||!allowedUpdate(r,m)||(["submitted","partial","complete"].includes(m.kind)&&!r.clickAuthorized)||["complete","blocked","uncertain"].includes(r.state))throw Error("Invalid or stale update");
  r.seq=m.seq;r.state=m.kind;r.message=typeof m.message==="string"?m.message.slice(0,300):"";if(m.text)r.text=m.text;
  // Only use the browser-observed origin/path; strip query and fragment for sharing.
  const u=new URL(sender.url);r.url=u.origin+u.pathname;await save(id,r);await notify(id,r);
@@ -48,7 +49,8 @@ async function panel(m,sender){
  if(m.type==="CONTEXT"){if(!isProvider(tab.url,r.provider))throw Error("Provider mismatch or access not granted");return {provider:r.provider,prompt:r.prompt};}
  throw Error("Unknown side panel action");
 }
-chrome.runtime.onMessage.addListener((m,sender,reply)=>{if(!m||typeof m.type!=="string")return;const task=m.type==="LAUNCH"?launch(m,sender):m.type==="UPDATE"?update(m,sender):panel(m,sender);task.then(result=>reply({ok:true,...result}),e=>reply({ok:false,job:m.job,error:String(e.message||e).slice(0,300)}));return true;});
+chrome.runtime.onMessage.addListener((m,sender,reply)=>{if(!m||typeof m.type!=="string")return;const task=m.type==="LAUNCH"?launch(m,sender):m.type==="UPDATE"?update(m,sender):m.type==="AUTHORIZE_CLICK"?authorizeClick(m,sender):panel(m,sender);task.then(result=>reply({ok:true,...result}),e=>reply({ok:false,job:m.job,error:String(e.message||e).slice(0,300)}));return true;});
 chrome.tabs.onUpdated.addListener((id,info)=>{if(info.status==="complete")void start(id).catch(()=>{});if(info.url)void withLock(id,async()=>{const r=await read(id);if(!fresh(r)||isProvider(info.url,r.provider)||["complete","blocked","uncertain"].includes(r.state))return;r.state=r.claimed?"uncertain":"blocked";r.message="Provider tab navigated away; automation will not retry.";await save(id,r);await notify(id,r);}).catch(()=>{});});
 chrome.tabs.onRemoved.addListener(id=>{void chrome.storage.session.remove(key(id));});
+chrome.permissions.onRemoved.addListener(()=>{void (async()=>{const all=await chrome.storage.session.get(null);for(const [k,r] of Object.entries(all)){if(!k.startsWith("tab:")||!fresh(r)||["complete","blocked","uncertain"].includes(r.state)||await permission(r.provider))continue;const id=Number(k.slice(4));await withLock(id,async()=>{const current=await read(id);if(!fresh(current)||["complete","blocked","uncertain"].includes(current.state)||await permission(current.provider))return;current.state=current.clickAuthorized?"uncertain":"blocked";current.message="Provider access revoked; automatic work stopped.";await save(id,current);await notify(id,current);});}})().catch(()=>{});});
 if(chrome.sidePanel?.setPanelBehavior)chrome.sidePanel.setPanelBehavior({openPanelOnActionClick:true}).catch(()=>{});

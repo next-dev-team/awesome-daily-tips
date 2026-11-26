@@ -27,6 +27,8 @@
  const button=await until(()=>{const b=unique(a.send);return b&&!b.disabled&&b.getAttribute("aria-disabled")!=="true"?b:null;},10000);
  if(!button||!composer.isConnected||value(composer)!==norm(m.prompt)||nodes(a.user).length||nodes(a.answer).length||nodes(a.stop).length)throw Error("Send not uniquely available or page changed; inspect manually");
  // Click once only, never retry after an ambiguous outcome.
+ const ack=await chrome.runtime.sendMessage({type:"AUTHORIZE_CLICK",job:m.job,token:m.token,provider:m.provider});if(!ack?.ok||!ack.authorized)throw Error("Click authorization denied");
+ if(!button.isConnected||unique(a.send)!==button||button.disabled||button.getAttribute("aria-disabled")==="true"||!composer.isConnected||value(composer)!==norm(m.prompt)||nodes(a.user).length||nodes(a.answer).length||nodes(a.stop).length)throw Error("Composer changed after authorization; inspect manually");
  sent=true;button.click();await emit("submitted","","Send clicked once; awaiting matching user turn");
  const user=await until(()=>{const u=nodes(a.user);return u.length===1&&value(u[0])===norm(m.prompt)?u[0]:null;},30000);
  if(!user)throw Error("Could not confirm exact submitted user turn; do not retry automatically");

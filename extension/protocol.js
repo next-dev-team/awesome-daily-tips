@@ -11,7 +11,8 @@ function validMode(mode){return ["manual","auto","live"].includes(mode);}
 function canStart(record){return !!record&&record.state==="ready"&&record.auto===true&&record.claimed!==true;}
 function canForward(mode,kind){return mode==="live"&&["partial","complete"].includes(kind)||mode==="auto"&&kind==="complete";}
 function allowedUpdate(record,event){return !!record&&record.job===event.job&&record.token===event.token&&record.provider===event.provider&&Number.isSafeInteger(event.seq)&&event.seq>record.seq&&["waiting","filled","submitted","partial","complete","blocked","uncertain"].includes(event.kind)&&typeof event.text==="string"&&event.text.length<=200000;}
+function canAuthorizeClick(record,event,granted){return granted===true&&!!record&&record.state==="filled"&&record.claimed===true&&record.clickAuthorized!==true&&record.job===event.job&&record.token===event.token&&record.provider===event.provider;}
 const AUTO_PROVIDERS=["chatgpt","claude","gemini"];
 function identify(url){return Object.keys(PROVIDERS).find(id=>isProvider(url,id))||null;}
 function hostPattern(id){return new URL(PROVIDERS[id]).origin+"/*";}
-if(typeof module!=="undefined")module.exports={PROVIDERS,isSite,isProvider,validLaunch,fresh,TTL,validMode,canStart,canForward,allowedUpdate,AUTO_PROVIDERS,identify,hostPattern};
+if(typeof module!=="undefined")module.exports={PROVIDERS,isSite,isProvider,validLaunch,fresh,TTL,validMode,canStart,canForward,allowedUpdate,canAuthorizeClick,AUTO_PROVIDERS,identify,hostPattern};
