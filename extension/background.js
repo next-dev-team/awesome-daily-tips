@@ -10,7 +10,7 @@ async function deliverResult(r,payload){
  if(r.source!=="panel")return sendSite(r,payload);
  const tabs=await chrome.tabs.query({url:"https://next-dev-team.github.io/awesome-daily-tips/*"});const sites=tabs.filter(t=>isSite(t.url));
  if(sites.length!==1)throw Error("Open exactly one Skillspace page to import; provider submission is already independent.");
- return sendSite({...r,siteTab:sites[0].id},{...payload,type:"PANEL_RESULT",prompt:r.prompt});
+ return sendSite({...r,siteTab:sites[0].id},{...payload,state:payload.state==="partial"?"incomplete":payload.state,type:"PANEL_RESULT",prompt:r.prompt});
 }
 async function notify(id,r){await sendSite(r,{type:"STATUS",state:r.state,message:r.message||"",tabId:id,url:r.url||PROVIDERS[r.provider]});}
 async function permission(id){return chrome.permissions.contains({origins:[hostPattern(id)]});}
