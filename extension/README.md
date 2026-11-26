@@ -1,3 +1,13 @@
+# Skillspace Bridge v0.4.2 — direct provider send
+
+Open the native side panel, select AI providers, type your prompt or @skill, click **Send to N AIs** and grant requested permissions. The extension opens fresh provider tabs and attempts one real DOM Send click after verifying the composer and inserted prompt. No Skillspace website or second Send click required. Actual observed responses appear in the panel.
+
+The website selects Bridge when a compatible extension connects; disable it for direct URL fallback. Grant provider access from the side panel first. Send in Bridge mode explicitly authorizes submission, without a separate auto-submit toggle. Response sync is independent.
+
+Seven adapters are experimental: live selectors and fresh-chat routes are not verified. Missing/ambiguous selectors, existing text, redirects or login block automation; inspect provider before any manual retry. To return a panel answer, open exactly one Skillspace page and click Send to Main Chat. It imports (never resubmits) the answer, provided the page has no different active job. Reload older extension after updating. Panel skill compilation uses compact instructions. Use the website for full instructions.
+
+Run `node extension/panel-direct.test.js` and existing tests. Provider DOM and browser acceptance remain required. No fake results.
+
 # Skillspace Bridge v0.4.1 — experimental stability candidate
 
 ## Install the native side panel

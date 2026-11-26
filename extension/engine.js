@@ -16,7 +16,7 @@
  function cleanup(){observer?.disconnect();clearInterval(interval);clearTimeout(timer);running=false;done=true;}
  async function finish(kind,text,message){if(done)return;cleanup();try{await emit(kind,text,message);}catch{}}
  try{
- const origins={chatgpt:"https://chatgpt.com",claude:"https://claude.ai",gemini:"https://gemini.google.com",deepseek:"https://chat.deepseek.com",perplexity:"https://www.perplexity.ai",grok:"https://grok.com",copilot:"https://copilot.microsoft.com"};if(!a||location.origin!==origins[m.provider])throw Error("Provider origin mismatch");await emit("waiting","","Waiting for unique composer");
+ const origins={chatgpt:"https://chatgpt.com",claude:"https://claude.ai",gemini:"https://gemini.google.com",deepseek:"https://chat.deepseek.com",perplexity:"https://www.perplexity.ai",grok:"https://grok.com",copilot:"https://copilot.microsoft.com"};if(!a||location.origin!==origins[m.provider])throw Error("Provider origin mismatch");const freshPaths={chatgpt:["/"],claude:["/new","/new/"],gemini:["/app","/app/"],deepseek:["/"],perplexity:["/"],grok:["/"],copilot:["/"]};if(!freshPaths[m.provider]?.includes(location.pathname))throw Error("Not a recognized fresh chat route; inspect provider and submit manually.");await emit("waiting","","Waiting for unique composer");
  const composer=await until(()=>unique(a.composer),20000);if(!composer)throw Error("Composer not found; login, CAPTCHA or UI change may require manual action");
  if(value(composer))throw Error("Composer is not empty; nothing overwritten");
  // Fresh provider tab only. Existing visible turns or an in-progress answer make attribution unsafe.
@@ -25,10 +25,10 @@
  await pause(250);if(value(composer)!==norm(m.prompt))throw Error("Inserted prompt could not be verified");
  await emit("filled","","Exact prompt verified");
  const button=await until(()=>{const b=unique(a.send);return b&&!b.disabled&&b.getAttribute("aria-disabled")!=="true"?b:null;},10000);
- if(!button||!composer.isConnected||value(composer)!==norm(m.prompt)||nodes(a.user).length||nodes(a.answer).length||nodes(a.stop).length)throw Error("Send not uniquely available or page changed; inspect manually");
+ if(!button||!composer.isConnected||!freshPaths[m.provider].includes(location.pathname)||(composer.closest("form")&&button.closest("form")!==composer.closest("form"))||value(composer)!==norm(m.prompt)||nodes(a.user).length||nodes(a.answer).length||nodes(a.stop).length)throw Error("Send not uniquely available or page changed; inspect manually");
  // Click once only, never retry after an ambiguous outcome.
  const ack=await chrome.runtime.sendMessage({type:"AUTHORIZE_CLICK",job:m.job,token:m.token,provider:m.provider});if(!ack?.ok||!ack.authorized)throw Error("Click authorization denied");
- if(!button.isConnected||unique(a.send)!==button||button.disabled||button.getAttribute("aria-disabled")==="true"||!composer.isConnected||value(composer)!==norm(m.prompt)||nodes(a.user).length||nodes(a.answer).length||nodes(a.stop).length)throw Error("Composer changed after authorization; inspect manually");
+ if(!freshPaths[m.provider].includes(location.pathname)||!button.isConnected||unique(a.send)!==button||button.disabled||button.getAttribute("aria-disabled")==="true"||!composer.isConnected||value(composer)!==norm(m.prompt)||nodes(a.user).length||nodes(a.answer).length||nodes(a.stop).length)throw Error("Composer changed after authorization; inspect manually");
  sent=true;button.click();await emit("submitted","","Send clicked once; awaiting matching user turn");
  const user=await until(()=>{const u=nodes(a.user);return u.length===1&&value(u[0])===norm(m.prompt)?u[0]:null;},30000);
  if(!user)throw Error("Could not confirm exact submitted user turn; do not retry automatically");
