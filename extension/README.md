@@ -1,0 +1,22 @@
+# Skillspace Bridge v0.4.1 — experimental stability candidate
+
+## Install the native side panel
+Chrome 116+ (Edge support must be verified on your installed version). Download the reviewed repository and extract it. Open chrome://extensions or edge://extensions, enable Developer mode, Load unpacked, select extension/. Pin the Skillspace extension and click its toolbar icon to open the native side panel. Reload the production Skillspace page. This is not a Chrome Web Store release.
+
+## Use
+1. In the side panel choose each desired provider and Grant permission. Revoke removes optional host permission; it cannot undo already submitted requests.
+2. In Skillspace choose providers, enable Bridge, and explicitly enable automatic submission if desired. Manual sync is the default. Choose Automatic to forward only a completion observed through the provider controls, or Live for partial DOM text updates.
+3. Send creates one job with one new tab per provider. ChatGPT, Claude and Gemini have conservative experimental automation selectors. Perplexity, DeepSeek, Grok and Copilot have manual fallback only. The side panel shows real state, not fabricated answers.
+4. If a provider is blocked (permission, login, existing conversation, missing/ambiguous composer, send control, attribution or timeout), inspect the actual provider tab before manually sending anything. No automatic retry after an ambiguous click.
+5. In manual mode, click Send to Main Chat on an observed answer. Or use Copy current prompt, paste/submit manually, select answer text, Preview selected text, then Send selected text to main chat. Grant the provider permission first; no silent access.
+6. Open conversation switches to the original provider tab. Main response cards can copy text and open an observed provider URL. Export responses creates a local JSON file. Review content and completeness before use.
+7. Compose from the same skill IDs in the side panel and Send draft to main chat; it appends to the existing draft for review, never submits automatically.
+
+## Development without merging
+Run `node scripts/build-dev-extension.mjs` and `python -m http.server 8000` from the repo root. Load unpacked `dist/extension-dev/` (disable the production extension while testing), then open http://localhost:8000/. The dev copy changes only the allowed Skillspace origin/path, manifest and main link. Never publish the dev extension. Production is restricted to the GitHub Pages app path.
+
+## Boundaries and known limitations
+The site is a static launcher, not an AI API proxy. No credentials, private API interception, broad all-site permissions, CAPTCHA bypass, or fake results. Optional provider origins are exact allowlists. The extension declares the Pages origin for locating the main tab; its content bridge checks the exact app path. Job ID, tab ID, random token, monotonically increasing sequence, permission and exact origin bind observed updates. The engine clicks once only after verifying the inserted prompt and a fresh conversation, then matches the submitted user turn before accepting a following assistant node. Completion requires seeing the generation control and its disappearance plus stable answer text; otherwise status is uncertain. Plain text only; source formatting/images/citations may not be preserved. Provider UI and terms can change. Session records are accessible for one hour, pruned on new launches or tab close; browser restart clears session storage. Up to 21 tracked tabs, subject to browser storage quota. The main page preserves the active job while editing draft or provider options. Use New prompt explicitly to replace it; reloading still clears page memory and already authorized work may continue. Main chat must acknowledge actual rendering before a response is reported delivered; old-job imports return an error. Protocol 2 requires a compatible v0.4.1+ extension, with periodic worker-backed heartbeat. If a job stalls, it is marked blocked/uncertain without auto retry. No automated provider-specific E2E has been run yet. Do not treat implemented selectors as verified integrations.
+
+## Tests
+Run `node extension/protocol.test.js`, `node extension/automation.test.js`, `node extension/stability.test.js`, `node extension/bridge-transport.test.js`, `node extension/catalog.test.js`, and `node site/core.test.js`. The live acceptance checklist is in docs/audit/PRODUCTION_READINESS.md. Do not use live credentials in test fixtures.

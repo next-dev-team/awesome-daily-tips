@@ -1,0 +1,10 @@
+'use strict';
+const assert=require("node:assert/strict"),{legalTransition,allowedUpdate}=require("./protocol.js"),{compatibleBridge}=require("../site/bridge-policy.js");
+const hello={protocol:2,version:"0.4.1",capabilities:["ack","state-machine","heartbeat"]};
+assert(compatibleBridge(hello));assert(!compatibleBridge({}));assert(!compatibleBridge({...hello,protocol:1}));assert(!compatibleBridge({...hello,version:"0.4.0"}));assert(!compatibleBridge({...hello,capabilities:["ack"]}));
+const states=["waiting","filled","submitted","partial","complete","blocked","uncertain"];
+const expected=new Set(["waiting:waiting","waiting:filled","waiting:blocked","filled:submitted","filled:blocked","filled:uncertain","submitted:partial","submitted:uncertain","partial:partial","partial:complete","partial:uncertain"]);
+for(const from of states)for(const to of states)assert.equal(legalTransition(from,to),expected.has(from+":"+to),from+" -> "+to);
+const r={job:"j",token:"t",provider:"chatgpt",seq:2,state:"submitted"},e={...r,seq:3,kind:"partial",text:"observed"};
+assert(allowedUpdate(r,e));assert(!allowedUpdate(r,{...e,text:""}));assert(!allowedUpdate(r,{...e,text:null}));assert(!allowedUpdate(r,{...e,kind:"complete"}));assert(!allowedUpdate({...r,state:"complete"},e));assert(!allowedUpdate(r,{...e,seq:2}));
+console.log("60 stability policy assertions passed");

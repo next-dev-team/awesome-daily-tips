@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Skillspace Bridge",
+  "version": "0.4.1",
+  "description": "Skillspace side panel and consent-based AI chat automation",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Skillspace side panel"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://next-dev-team.github.io/awesome-daily-tips/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "optional_host_permissions": [
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://www.perplexity.ai/*",
+    "https://chat.deepseek.com/*",
+    "https://grok.com/*",
+    "https://copilot.microsoft.com/*"
+  ],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "minimum_chrome_version": "116",
+  "host_permissions": [
+    "https://next-dev-team.github.io/*"
+  ]
+}
