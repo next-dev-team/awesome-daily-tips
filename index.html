@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="site/style.css">
 <script defer src="site/core.js"></script>
 <script defer src="site/catalog.js"></script>
+<script defer src="site/bridge.js"></script>
 <script defer src="site/app.js"></script>
 </head>
 <body>
@@ -26,14 +27,14 @@
 <header class="topbar">
 <div class="top-left"><button id="toggle-sidebar" type="button" class="iconbutton" aria-label="Toggle skill library" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button><span class="wordmark">Skillspace</span></div>
 <div class="mode-toggle" aria-label="Workspace"><span class="mode-active">Prompt</span></div>
-<div class="appearance"><label class="sr" for="skin">Interface style</label><select id="skin" aria-label="Interface style"><option value="chatgpt">ChatGPT style</option><option value="claude">Claude style</option><option value="gemini">Gemini style</option></select><label class="sr" for="theme">Color theme</label><select id="theme" aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+<div class="appearance"><span id="skin-label" class="skin-label">ChatGPT style</span><label class="sr" for="theme">Color theme</label><select id="theme" aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
 </header>
 <section class="workspace" aria-labelledby="heading">
 <div class="intro"><span class="greeting-mark" aria-hidden="true">✳</span><h1 id="heading">What's on your mind today?</h1><p>One prompt, any skill, your choice of AI.</p></div>
 <div class="thread" id="thread" hidden>
 <div class="turn"><div id="sent-prompt" class="user-bubble"></div></div>
 <div class="assistant-turn"><span class="assistant-mark" aria-hidden="true">✳</span><div class="assistant-content">
-<div id="results" class="results" hidden><h2>Ready to open</h2><p>Open each provider in its own tab. Paste the prompt if necessary, then compare their independent results.</p><div id="links" class="launchlinks"></div></div>
+<div id="results" class="results" hidden><h2>Ready to open</h2><p>Open each provider in its own tab. Paste the prompt if necessary, then compare their independent results.</p><div id="links" class="launchlinks"></div><section id="response-panel" hidden><h2>Imported responses</h2><p>Selected text from your provider tabs. Review and compare independently.</p><div id="responses" class="responses"></div></section></div>
 </div></div>
 </div>
 <div class="dock">
@@ -50,17 +51,17 @@
 <div class="composer-right">
 <button id="provider-toggle" type="button" class="provider-toggle" aria-controls="provider-panel" aria-expanded="false"><span id="provider-label">ChatGPT</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
 <button id="copy" type="button" class="iconbutton" title="Copy compiled prompt" aria-label="Copy compiled prompt" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
-<button id="launch" type="button" class="send" aria-label="Prepare provider launch" title="Prepare provider launch (Ctrl/Command+Enter)" disabled><span class="sr">Prepare launch </span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>
+<button id="launch" type="button" class="send" aria-label="Prepare provider launch" title="Open selected AI (Ctrl/Command+Enter)" disabled><span class="sr">Prepare launch </span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>
 </div>
 </div>
 </div>
 <section class="providers" id="provider-panel" aria-labelledby="provider-heading" hidden>
 <div class="sectionhead"><div><h2 id="provider-heading">Choose providers</h2><p>Choose one or more AI chats.</p></div><div class="smallactions"><button type="button" id="all" class="textbutton">All</button><button type="button" id="clear" class="textbutton">Clear</button></div></div>
 <div id="providers" class="providergrid"></div>
-<div class="options"><label><input id="full" type="checkbox"> Include full skill instructions</label><label><input id="prefill" type="checkbox"> Allow prompt in provider URL</label></div>
-<p class="privacy">URL mode may expose text in browser history and provider logs. Avoid secrets.</p>
+<div class="options"><label><input id="full" type="checkbox"> Include full skill instructions</label><label><input id="prefill" type="checkbox" checked> Open with prompt where supported</label></div>
+<label class="bridge-option"><input id="bridge-mode" type="checkbox" disabled> Use Skillspace Bridge · <span id="bridge-state">Not connected</span></label><p class="privacy">Prompt URLs may be retained in browser history and provider logs. Turn off URL mode for sensitive prompts. Bridge mode does not include prompts in URLs.</p><a class="bridge-help" href="https://github.com/next-dev-team/awesome-daily-tips/tree/main/extension" target="_blank" rel="noopener noreferrer">Install Chrome / Edge bridge ↗</a>
 </section>
-<p id="status" class="status" role="status" aria-live="polite"></p>
+<p class="launch-hint">Send opens external AI tabs. Prompt URLs are on by default; change this in the provider menu.</p><p id="status" class="status" role="status" aria-live="polite"></p>
 <details id="preview" class="preview"><summary>Preview compiled prompt <span id="preview-length"></span></summary><label class="sr" for="compiled">Generated prompt</label><textarea id="compiled" rows="8" readonly></textarea></details>
 <section class="examples"><h2 class="sr">Try a skill</h2><div id="examples" class="examplegrid"></div></section>
 </div>

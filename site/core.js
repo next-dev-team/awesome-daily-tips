@@ -16,7 +16,8 @@ function createCore(){
  function activeMention(text,cursor){const before=text.slice(0,cursor);const m=/(^|[\s(])@([a-z0-9-]*)$/i.exec(before);if(!m)return null;const start=cursor-m[2].length-1;const tail=/^[a-z0-9-]*/i.exec(text.slice(cursor))[0];return {start,end:cursor+tail.length,query:m[2].toLowerCase()};}
  function insertMention(text,cursor,id){const m=activeMention(text,cursor);const start=m?m.start:cursor,end=m?m.end:cursor;const prefix=!m&&start>0&&!/\s/.test(text[start-1])?" ":"";const token=prefix+"@"+id+" ";return {text:text.slice(0,start)+token+text.slice(end),cursor:start+token.length};}
  function removeMention(text,id){return text.replace(mentionPattern,(whole,prefix,name)=>name.toLowerCase()===id?prefix:whole);}
- return {providers,split,compose,launch,activeMention,insertMention,removeMention};
+ function skinFor(ids){return ids.length===1&&["chatgpt","claude","gemini","grok"].includes(ids[0])?ids[0]:"default";}
+ return {providers,split,compose,launch,activeMention,insertMention,removeMention,skinFor};
 }
 const core = createCore();
 if (typeof module !== 'undefined' && module.exports) module.exports = core;

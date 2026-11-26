@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Skillspace Bridge",
+  "version": "0.1.0",
+  "description": "Open AI chats, fill prompts on request, and import selected responses.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://next-dev-team.github.io/awesome-daily-tips/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}
