@@ -2,6 +2,16 @@
 
  a meticulously curated collection of resources, website, tools, and frameworks designed to empower and inspire. this repository is dedicated to providing you with an abundance of valuable information.
 
+## Skillspace — AI skill launcher
+
+A small static, dependency-free website for writing a prompt, mentioning one or more GitHub skills with `@skill`, and opening the same compiled prompt in selected AI providers. ChatGPT, Claude and Perplexity offer best-effort URL prefill; other providers use copy and paste. All providers support manual paste. The launcher does not call AI APIs, collect responses or claim to rank them.
+
+- Run locally: `python -m http.server 8000` from the repository root, then visit http://localhost:8000.
+- Test: `node site/core.test.js` (Node.js 18+).
+- Deploy: serve this repository root as static files (e.g. GitHub Pages, main / root, or Vercel with no framework/build step). No server, keys, accounts or build dependencies are required.
+- Privacy: URL prefill is opt-in; query strings may be retained by browsers and destination services. Long prompts fall back to manual paste. No prompt persistence or telemetry is implemented.
+- The bundled catalog is a snapshot of the actual skill documents, with links to their current sources. When updating a skill, also update its corresponding `site/catalog.js` document content. Compact mode includes source links and short instructions; full mode includes the entire bundled skill text (and audit references) for providers without browsing.
+
 ## Useful AI Skills
  - **Search any product**  Price Range, Spec + links, contact 
   - Usage Supports 3 output formats: Telegram — default, Table — when you ask for table/Markdown table, General — normal detailed recommendation format

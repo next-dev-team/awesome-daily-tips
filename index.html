@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; connect-src 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>Skillspace — Awesome Daily Tips</title>
+<link rel="stylesheet" href="site/style.css">
+<script defer src="site/core.js"></script>
+<script defer src="site/catalog.js"></script>
+<script defer src="site/app.js"></script>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+<a class="brand" href="./"><span class="brandmark" aria-hidden="true">✳</span><span>skillspace<small>AWESOME DAILY TIPS</small></span></a>
+<button id="new" class="new" type="button"><span aria-hidden="true">＋</span> New prompt</button>
+<div class="sidebarhead"><h2>Skill library</h2><span id="skill-count"></span></div>
+<label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Find a skill..." aria-label="Find a skill"></label>
+<nav id="library" aria-label="Skill library"></nav>
+<div class="sidebarbottom"><a href="https://github.com/next-dev-team/awesome-daily-tips" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a><p>Open-source skills. Your AI accounts.</p></div>
+</aside>
+<main>
+<header class="topbar"><span><span class="dot"></span> Prompt workspace</span><span class="local">No account · No API key</span></header>
+<section class="workspace" aria-labelledby="heading">
+<div class="intro"><span class="eyebrow">YOUR AI WORKBENCH</span><h1 id="heading">One prompt.<br><em>Many possibilities.</em></h1><p>Choose a skill, write your request, and take it to your favorite AI. Compare independent answers on your own terms.</p></div>
+<div class="composer">
+<div id="selected-skills" class="chips" aria-label="Selected skills"></div>
+<div class="editorwrap">
+<label class="sr" for="prompt">Your request</label>
+<textarea id="prompt" rows="5" maxlength="50000" placeholder="Ask anything... Type @ to add a skill." aria-describedby="editor-hint" aria-autocomplete="list" aria-controls="mentions" spellcheck="true"></textarea>
+<div id="mentions" class="mentions" role="listbox" aria-label="Skill suggestions" hidden></div>
+</div>
+<div class="composerbar"><button id="mention" type="button" class="quiet"><b>@</b> Add skill</button><span id="editor-hint">Type @ to mention a skill</span><span id="chars">0</span></div>
+<div class="options"><label><input id="full" type="checkbox"> Include full skill instructions</label><label><input id="prefill" type="checkbox"> Allow prompt in provider URL</label></div>
+<div class="privacy">Prompts stay in this page until you copy or open a provider. URL mode can expose text in browser history and provider logs. Avoid secrets.</div>
+</div>
+<section class="providers" aria-labelledby="provider-heading">
+<div class="sectionhead"><div><h2 id="provider-heading">Choose your AI</h2><p>Select one or several to compare independently.</p></div><div class="smallactions"><button type="button" id="all" class="textbutton">Select all</button><button type="button" id="clear" class="textbutton">Clear</button></div></div>
+<div id="providers" class="providergrid"></div>
+<div class="actions"><button id="copy" type="button" class="secondary" disabled>Copy prompt</button><button id="launch" type="button" class="primary" disabled>Prepare launch <span aria-hidden="true">↗</span></button></div>
+<p id="status" class="status" role="status" aria-live="polite"></p>
+<div id="results" class="results" hidden><div class="sectionhead"><div><h2>Open your selected providers</h2><p>Each opens in a separate tab. Paste the prompt if needed; compare results yourself.</p></div></div><div id="links" class="launchlinks"></div></div>
+<details id="preview" class="preview"><summary>Preview final prompt <span id="preview-length"></span></summary><label class="sr" for="compiled">Generated prompt</label><textarea id="compiled" rows="8" readonly></textarea></details>
+</section>
+<section class="examples"><h2>Try a skill</h2><div id="examples" class="examplegrid"></div></section>
+</section>
+<footer>Skillspace is a launcher, not an AI chat service. Responses stay with the providers you choose.</footer>
+</main>
+</div>
+<noscript><p>This launcher needs JavaScript. Browse the <a href="https://github.com/next-dev-team/awesome-daily-tips">skills on GitHub</a>.</p></noscript>
+</body></html>
