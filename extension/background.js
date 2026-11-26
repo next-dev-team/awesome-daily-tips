@@ -5,7 +5,7 @@ const panelURL=chrome.runtime.getURL("panel.html");
 async function read(id){return (await chrome.storage.session.get(key(id)))[key(id)];}
 async function save(id,r){await chrome.storage.session.set({[key(id)]:r});}
 async function withLock(id,fn){while(locks.has(id))await new Promise(r=>setTimeout(r,25));locks.add(id);try{return await fn();}finally{locks.delete(id);}}
-async function sendSite(r,payload){try{await chrome.tabs.sendMessage(r.siteTab,{job:r.job,provider:r.provider,...payload},{frameId:0});return true;}catch{return false;}}
+async function sendSite(r,payload){try{const ack=await chrome.tabs.sendMessage(r.siteTab,{job:r.job,provider:r.provider,...payload},{frameId:0});return ack?.accepted===true;}catch{return false;}}
 async function notify(id,r){await sendSite(r,{type:"STATUS",state:r.state,message:r.message||"",tabId:id,url:r.url||PROVIDERS[r.provider]});}
 async function permission(id){return chrome.permissions.contains({origins:[hostPattern(id)]});}
 async function start(id){return withLock(id,async()=>{
@@ -19,7 +19,7 @@ async function start(id){return withLock(id,async()=>{
  catch(e){r.state="blocked";r.message="Injection unavailable; inspect provider before manually submitting. "+String(e.message).slice(0,120);await save(id,r);await notify(id,r);}
  });}
 async function launch(m,sender){
- if(!isSite(sender.url)||!sender.tab||sender.frameId!==0||!validLaunch(m)||!validMode(m.mode)||typeof m.auto!=="boolean")throw Error("Invalid launch");
+ if(!isSite(sender.url)||!sender.tab||sender.frameId!==0||m.protocol!==BRIDGE_PROTOCOL||!validLaunch(m)||!validMode(m.mode)||typeof m.auto!=="boolean")throw Error("Invalid launch");
  if(opening)throw Error("Launch already in progress");opening=true;
  try{const all=await chrome.storage.session.get(null);const old=Object.entries(all).filter(([k,v])=>k.startsWith("tab:")&&!fresh(v)).map(([k])=>k);if(old.length)await chrome.storage.session.remove(old);
  const jobKey="job:"+sender.tab.id+":"+m.job;if(all[jobKey])throw Error("Duplicate job");const staleJobs=Object.entries(all).filter(([k,v])=>k.startsWith("job:")&&!fresh(v)).map(([k])=>k);if(staleJobs.length)await chrome.storage.session.remove(staleJobs);
@@ -35,21 +35,21 @@ async function update(m,sender){const id=sender.tab?.id;if(!Number.isInteger(id)
  r.seq=m.seq;r.state=m.kind;r.message=typeof m.message==="string"?m.message.slice(0,300):"";if(m.text)r.text=m.text;
  // Only use the browser-observed origin/path; strip query and fragment for sharing.
  const u=new URL(sender.url);r.url=u.origin+u.pathname;await save(id,r);await notify(id,r);
- if(r.text&&canForward(r.mode,m.kind))await sendSite(r,{type:"RESPONSE",text:r.text,state:m.kind,url:r.url});return {accepted:true};
+ if(r.text&&canForward(r.mode,m.kind)){r.delivered=await sendSite(r,{type:"RESPONSE",text:r.text,state:m.kind,url:r.url});await save(id,r);}return {accepted:true};
  });}
 async function panel(m,sender){
  if(sender.url!==panelURL)throw Error("Only side panel may perform this action");
- if(m.type==="LIST"){const all=await chrome.storage.session.get(null);return {jobs:Object.entries(all).filter(([k,r])=>k.startsWith("tab:")&&fresh(r)).map(([k,r])=>({tabId:Number(k.slice(4)),provider:r.provider,job:r.job,state:r.state,text:r.text,message:r.message,url:r.url,siteTab:r.siteTab,created:r.created}))};}
- if(m.type==="DRAFT"){if(typeof m.text!=="string"||!m.text.trim()||m.text.length>50000)throw Error("Invalid draft");const tabs=await chrome.tabs.query({url:"https://next-dev-team.github.io/awesome-daily-tips/*"});const sites=tabs.filter(t=>isSite(t.url));if(sites.length!==1)throw Error("Open exactly one Skillspace main page before sending a draft");await chrome.tabs.sendMessage(sites[0].id,{type:"DRAFT",text:m.text},{frameId:0});await chrome.tabs.update(sites[0].id,{active:true});return {};}
+ if(m.type==="LIST"){const all=await chrome.storage.session.get(null);return {jobs:Object.entries(all).filter(([k,r])=>k.startsWith("tab:")&&fresh(r)).map(([k,r])=>({tabId:Number(k.slice(4)),provider:r.provider,job:r.job,state:r.state,text:r.text,message:r.message,delivered:r.delivered===true,url:r.url,siteTab:r.siteTab,created:r.created}))};}
+ if(m.type==="DRAFT"){if(typeof m.text!=="string"||!m.text.trim()||m.text.length>50000)throw Error("Invalid draft");const tabs=await chrome.tabs.query({url:"https://next-dev-team.github.io/awesome-daily-tips/*"});const sites=tabs.filter(t=>isSite(t.url));if(sites.length!==1)throw Error("Open exactly one Skillspace main page before sending a draft");const ack=await chrome.tabs.sendMessage(sites[0].id,{type:"DRAFT",text:m.text},{frameId:0});if(!ack?.accepted)throw Error("Main chat rejected draft");await chrome.tabs.update(sites[0].id,{active:true});return {};}
  if(!Number.isInteger(m.tabId))throw Error("Invalid tab");
  const r=await read(m.tabId);if(!fresh(r))throw Error("No current job for this tab");const tab=await chrome.tabs.get(m.tabId);
  if(m.type==="OPEN"){if(!isProvider(tab.url,r.provider))throw Error("Provider tab navigated elsewhere");await chrome.tabs.update(m.tabId,{active:true});return {};}
- if(m.type==="SEND_MAIN"){if(!r.text.trim())throw Error("No observed response");if(!await sendSite(r,{type:"RESPONSE",text:r.text,state:r.state==="complete"?"complete":"manual",url:r.url}))throw Error("Main page is unavailable");return {};}
- if(m.type==="IMPORT"){if(typeof m.text!=="string"||!m.text.trim()||m.text.length>MAX_RESPONSE||!isProvider(tab.url,r.provider))throw Error("Invalid selection");if(!await sendSite(r,{type:"RESPONSE",text:m.text,state:"manual",url:r.url}))throw Error("Main page unavailable");return {};}
+ if(m.type==="SEND_MAIN"){if(!r.text.trim())throw Error("No observed response");if(!await sendSite(r,{type:"RESPONSE",text:r.text,state:r.state==="complete"?"complete":r.state==="partial"?"partial":"incomplete",url:r.url}))throw Error("Main chat did not accept this job; keep the original request open or copy the response manually");return {};}
+ if(m.type==="IMPORT"){if(typeof m.text!=="string"||!m.text.trim()||m.text.length>MAX_RESPONSE||!isProvider(tab.url,r.provider))throw Error("Invalid selection");if(!await sendSite(r,{type:"RESPONSE",text:m.text,state:"manual",url:r.url}))throw Error("Main chat did not accept this job; copy the selected response manually");return {};}
  if(m.type==="CONTEXT"){if(!isProvider(tab.url,r.provider))throw Error("Provider mismatch or access not granted");return {provider:r.provider,prompt:r.prompt};}
  throw Error("Unknown side panel action");
 }
-chrome.runtime.onMessage.addListener((m,sender,reply)=>{if(!m||typeof m.type!=="string")return;const task=m.type==="LAUNCH"?launch(m,sender):m.type==="UPDATE"?update(m,sender):m.type==="AUTHORIZE_CLICK"?authorizeClick(m,sender):panel(m,sender);task.then(result=>reply({ok:true,...result}),e=>reply({ok:false,job:m.job,error:String(e.message||e).slice(0,300)}));return true;});
+chrome.runtime.onMessage.addListener((m,sender,reply)=>{if(!m||typeof m.type!=="string")return;const task=m.type==="HELLO"?Promise.resolve().then(()=>{if(!isSite(sender.url)||sender.frameId!==0||m.protocol!==BRIDGE_PROTOCOL)throw Error("Incompatible bridge");return {protocol:BRIDGE_PROTOCOL,version:chrome.runtime.getManifest().version,capabilities:BRIDGE_CAPABILITIES};}):m.type==="LAUNCH"?launch(m,sender):m.type==="UPDATE"?update(m,sender):m.type==="AUTHORIZE_CLICK"?authorizeClick(m,sender):panel(m,sender);task.then(result=>reply({ok:true,...result}),e=>reply({ok:false,job:m.job,error:String(e.message||e).slice(0,300)}));return true;});
 chrome.tabs.onUpdated.addListener((id,info)=>{if(info.status==="complete")void start(id).catch(()=>{});if(info.url)void withLock(id,async()=>{const r=await read(id);if(!fresh(r)||isProvider(info.url,r.provider)||["complete","blocked","uncertain"].includes(r.state))return;r.state=r.claimed?"uncertain":"blocked";r.message="Provider tab navigated away; automation will not retry.";await save(id,r);await notify(id,r);}).catch(()=>{});});
 chrome.tabs.onRemoved.addListener(id=>{void chrome.storage.session.remove(key(id));});
 chrome.permissions.onRemoved.addListener(()=>{void (async()=>{const all=await chrome.storage.session.get(null);for(const [k,r] of Object.entries(all)){if(!k.startsWith("tab:")||!fresh(r)||["complete","blocked","uncertain"].includes(r.state)||await permission(r.provider))continue;const id=Number(k.slice(4));await withLock(id,async()=>{const current=await read(id);if(!fresh(current)||["complete","blocked","uncertain"].includes(current.state)||await permission(current.provider))return;current.state=current.clickAuthorized?"uncertain":"blocked";current.message="Provider access revoked; automatic work stopped.";await save(id,current);await notify(id,current);});}})().catch(()=>{});});

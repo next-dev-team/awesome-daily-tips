@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Skillspace Bridge",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Skillspace side panel and consent-based AI chat automation",
   "permissions": [
     "activeTab",
