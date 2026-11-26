@@ -44,7 +44,7 @@ function mount(){
  input.addEventListener("blur",()=>closeMenu());
  $("toggle-sidebar").addEventListener("click",()=>setRail(shell.classList.contains("rail-closed")));
  $("theme").addEventListener("change",applyTheme);
- window.SkillBridge.onStatus((connected,reason)=>{$("bridge-mode").disabled=!connected&&!$("bridge-mode").checked;$("bridge-state").textContent=reason|| (connected?"Connected":"Not connected");});window.SkillBridge.onResponse(showResponse);window.SkillBridge.onEvent(bridgeEvent);window.SkillBridge.detect();
+ window.SkillBridge.onStatus((connected,reason)=>{$("bridge-mode").disabled=!connected&&!$("bridge-mode").checked;$("bridge-state").textContent=reason|| (connected?"Connected":"Not connected");for(const card of $("responses").children){const prior=observed.get(card.dataset.provider);if(prior?.state==="partial")card.querySelector("small").textContent=connected?"Partial · awaiting updates":"Partial · bridge disconnected";}});window.SkillBridge.onResponse(showResponse);window.SkillBridge.onEvent(bridgeEvent);window.SkillBridge.detect();
  $("bridge-mode").addEventListener("change",()=>{$("bridge-settings").hidden=!$("bridge-mode").checked;$("bridge-mode").disabled=!window.SkillBridge.connected&&!$("bridge-mode").checked;});$("export-responses").addEventListener("click",exportResponses);
  providerToggle.addEventListener("click",()=>setPanel(panel.hidden));
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!panel.hidden){setPanel(false);providerToggle.focus();}});
