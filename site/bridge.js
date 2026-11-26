@@ -7,7 +7,7 @@
  function setStatus(value,reason){connected=value;for(const fn of statusListeners)fn(value,reason);}
  function dispatch(list,m){let accepted=false;for(const fn of list){try{if(fn(m)===true)accepted=true;}catch{}}return accepted;}
  window.addEventListener("message",e=>{if(e.source!==window||e.origin!==origin||e.data?.source!==target)return;const m=e.data;
- if(m.type==="PONG"&&m.probe===probe){clearTimeout(probeTimer);probe=null;const ok=window.SkillBridgePolicy.compatibleBridge(m);setStatus(ok,ok?"Connected · "+m.version:"Update extension to v0.4.1+");return;}
+ if(m.type==="PONG"&&probe!==null&&m.probe===probe){clearTimeout(probeTimer);probe=null;const ok=window.SkillBridgePolicy.compatibleBridge(m);setStatus(ok,ok?"Connected · "+m.version:"Update extension to v0.4.1+");return;}
  if(m.protocol!==protocol)return;
  if(m.type==="LAUNCH_RESULT"&&callbacks.has(m.job)){const cb=callbacks.get(m.job);callbacks.delete(m.job);cb(m);return;}
  if(typeof m.deliveryId!=="string")return;
