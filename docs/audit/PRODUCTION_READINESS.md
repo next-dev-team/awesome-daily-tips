@@ -44,3 +44,6 @@ Mandatory release gates: scope documented; real integration, security runtime, b
 7. Test manual Send to Main Chat, auto completion only, live partial and terminal status, comparison and JSON export. Verify each response equals actual provider text and source links stay on the provider origin. Check manual selected-text fallback for all other providers.
 8. Test side panel draft @mentions, provider detection, permission revoke, app reload and old-job rejection; inspect session cleanup and resource behavior with 3+ tabs.
 9. Record exact browser/provider versions, inputs, observed results, screenshots and failures. No release until P1 findings resolved and all mandatory gates pass.
+
+## Final policy verification
+Node v22.16.0, exact Git blobs: protocol.js 830198a504455e0027fbcc17999e2a013ccb41e7, automation.test.js da32bc99fcd844b5d3cff551936261257615524d, protocol.test.js 85baa92e3caa3756ec57f6efa8ad4355abde77c1. Command: `node protocol.test.js && node automation.test.js` from the local temporary directory containing those exact files. Exit 0. Output: 15 protocol checks passed; 24 automation policy checks passed. These include denied/revoked permission, duplicate click authorization, wrong token/provider, state and update replay checks. The live integration gate remains NOT_VERIFIED.
