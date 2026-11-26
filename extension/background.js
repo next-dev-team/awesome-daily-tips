@@ -5,7 +5,7 @@ const panelURL=chrome.runtime.getURL("panel.html");
 async function read(id){return (await chrome.storage.session.get(key(id)))[key(id)];}
 async function save(id,r){await chrome.storage.session.set({[key(id)]:r});}
 async function withLock(id,fn){while(locks.has(id))await new Promise(r=>setTimeout(r,25));locks.add(id);try{return await fn();}finally{locks.delete(id);}}
-async function sendSite(r,payload){try{const ack=await chrome.tabs.sendMessage(r.siteTab,{job:r.job,provider:r.provider,...payload},{frameId:0});return ack?.accepted===true;}catch{return false;}}
+async function sendSite(r,payload){try{const ack=await chrome.tabs.sendMessage(r.siteTab,{job:r.job,provider:r.provider,seq:r.seq,...payload},{frameId:0});return ack?.accepted===true;}catch{return false;}}
 async function notify(id,r){await sendSite(r,{type:"STATUS",state:r.state,message:r.message||"",tabId:id,url:r.url||PROVIDERS[r.provider]});}
 async function permission(id){return chrome.permissions.contains({origins:[hostPattern(id)]});}
 async function start(id){return withLock(id,async()=>{
