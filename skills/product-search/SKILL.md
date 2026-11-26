@@ -1,3 +1,8 @@
+---
+name: product-search
+description: Research current product buying shortlists with verified prices, specifications, seller contacts, and location links.
+---
+
 # Buying Shortlist Skill
 
 ## Name
