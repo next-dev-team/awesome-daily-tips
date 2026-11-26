@@ -12,7 +12,7 @@
  if(m.type==="LAUNCH_RESULT"&&callbacks.has(m.job)){const cb=callbacks.get(m.job);callbacks.delete(m.job);cb(m);return;}
  if(typeof m.deliveryId!=="string")return;
  let accepted=false;
- if(m.type==="STATUS"||m.type==="DRAFT")accepted=dispatch(eventListeners,m);
+ if(m.type==="STATUS"||m.type==="DRAFT"||m.type==="PANEL_RESULT")accepted=dispatch(eventListeners,m);
  else if(m.type==="RESPONSE"&&typeof m.job==="string"&&typeof m.provider==="string"&&typeof m.text==="string"&&m.text.length<=200000)accepted=dispatch(responseListeners,m);
  send("DELIVERY_ACK",{deliveryId:m.deliveryId,accepted});
  });

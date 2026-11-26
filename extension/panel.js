@@ -15,11 +15,12 @@ function refreshDraft(){const text=compilePanel($("draft").value,PANEL_SKILLS);$
 const providerNames={chatgpt:"ChatGPT",claude:"Claude",gemini:"Gemini",perplexity:"Perplexity",deepseek:"DeepSeek",grok:"Grok",copilot:"Copilot"};
 for(const id of Object.keys(PROVIDERS)){const label=el("label"),cb=el("input");cb.type="checkbox";cb.checked=selected.has(id);cb.addEventListener("change",()=>{if(cb.checked)selected.add(id);else selected.delete(id);refreshDraft();});label.append(cb,document.createTextNode(" "+providerNames[id]));$("targets").append(label);}
 $("draft").addEventListener("input",refreshDraft);
-$("draft-send").addEventListener("click",async()=>{if(sending)return;const prompt=compilePanel($("draft").value,PANEL_SKILLS),targets=[...selected];if(!prompt||!targets.length)return;sending=true;refreshDraft();try{
+$("draft-send").addEventListener("click",async()=>{if(sending)return;const draft=$("draft").value,prompt=compilePanel(draft,PANEL_SKILLS),targets=[...selected];if(!prompt||!targets.length)return;sending=true;refreshDraft();try{
  // Permission request is initiated by this actual user click. Do not launch denied targets.
  const granted=await chrome.permissions.request({origins:targets.map(hostPattern)});
  if(!granted){status("Permission declined. No provider launched; select authorized targets and try again.");return;}
  const result=await call("PANEL_LAUNCH",{protocol:BRIDGE_PROTOCOL,job:crypto.randomUUID(),providers:targets,prompt,auto:true,mode:"manual"});
+ if(result.opened>0&&$("draft").value===draft)$("draft").value="";
  status("Opened "+result.opened+" provider tab(s). Automatic submission is in progress; see actual job status below."+(result.failures?.length?" Failed: "+result.failures.join(", "):""));
  }catch(e){status(e.message+" Inspect existing provider tabs before retrying.");}finally{sending=false;refreshDraft();void refresh();}});
 refreshDraft();
