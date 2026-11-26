@@ -1,18 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Skillspace Bridge",
-  "version": "0.1.0",
-  "description": "Open AI chats, fill prompts on request, and import selected responses.",
+  "version": "0.4.0",
+  "description": "Skillspace side panel and consent-based AI chat automation",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "sidePanel"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_title": "Open Skillspace side panel"
   },
   "content_scripts": [
     {
@@ -24,5 +25,18 @@
       ],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "optional_host_permissions": [
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://www.perplexity.ai/*",
+    "https://chat.deepseek.com/*",
+    "https://grok.com/*",
+    "https://copilot.microsoft.com/*"
+  ],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "minimum_chrome_version": "116"
 }
