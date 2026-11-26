@@ -6,6 +6,7 @@
 
 A small static, dependency-free website for writing a prompt, mentioning one or more GitHub skills with `@skill`, and opening the same compiled prompt in selected AI providers. ChatGPT, Claude and Perplexity offer best-effort URL prefill; other providers use copy and paste. All providers support manual paste. The launcher does not call AI APIs, collect responses or claim to rank them.
 
+- Interface: centered chat composer, collapsible skill library, provider picker and prepared-request conversation view, with ChatGPT-inspired, Claude-inspired and Gemini-inspired appearance options and light/dark/system themes. Inspired by the supplied [chat prompt component](https://ai-component-library-dun.vercel.app/code/chat-prompt.html.txt?v=dc7fc113509f); reimplemented as a responsive live launcher, without the reference's fixed-size animation, remote scripts, fake responses, or missing external skin assets.
 - Run locally: `python -m http.server 8000` from the repository root, then visit http://localhost:8000.
 - Test: `node site/core.test.js` (Node.js 18+).
 - Deploy: serve this repository root as static files (e.g. GitHub Pages, main / root, or Vercel with no framework/build step). No server, keys, accounts or build dependencies are required.

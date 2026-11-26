@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-skin="chatgpt" data-theme="system">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,41 +14,60 @@
 </head>
 <body>
 <div class="shell">
-<aside class="sidebar">
-<a class="brand" href="./"><span class="brandmark" aria-hidden="true">✳</span><span>skillspace<small>AWESOME DAILY TIPS</small></span></a>
-<button id="new" class="new" type="button"><span aria-hidden="true">＋</span> New prompt</button>
-<div class="sidebarhead"><h2>Skill library</h2><span id="skill-count"></span></div>
-<label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Find a skill..." aria-label="Find a skill"></label>
+<aside class="sidebar" aria-label="Workspace navigation">
+<a class="brand" href="./"><span class="brandmark" aria-hidden="true">✳</span><span>Skillspace<small>Awesome Daily Tips</small></span></a>
+<button id="new" class="new" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New prompt</button>
+<div class="sidebarhead"><h2>Skills</h2><span id="skill-count"></span></div>
+<label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="search" type="search" placeholder="Search skills" aria-label="Find a skill"></label>
 <nav id="library" aria-label="Skill library"></nav>
-<div class="sidebarbottom"><a href="https://github.com/next-dev-team/awesome-daily-tips" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a><p>Open-source skills. Your AI accounts.</p></div>
+<div class="sidebarbottom"><a href="https://github.com/next-dev-team/awesome-daily-tips" target="_blank" rel="noopener noreferrer">GitHub repository ↗</a><p>Open-source skills</p></div>
 </aside>
-<main>
-<header class="topbar"><span><span class="dot"></span> Prompt workspace</span><span class="local">No account · No API key</span></header>
+<main class="main">
+<header class="topbar">
+<div class="top-left"><button id="toggle-sidebar" type="button" class="iconbutton" aria-label="Toggle skill library" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button><span class="wordmark">Skillspace</span></div>
+<div class="mode-toggle" aria-label="Workspace"><span class="mode-active">Prompt</span></div>
+<div class="appearance"><label class="sr" for="skin">Interface style</label><select id="skin" aria-label="Interface style"><option value="chatgpt">ChatGPT style</option><option value="claude">Claude style</option><option value="gemini">Gemini style</option></select><label class="sr" for="theme">Color theme</label><select id="theme" aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+</header>
 <section class="workspace" aria-labelledby="heading">
-<div class="intro"><span class="eyebrow">YOUR AI WORKBENCH</span><h1 id="heading">One prompt.<br><em>Many possibilities.</em></h1><p>Choose a skill, write your request, and take it to your favorite AI. Compare independent answers on your own terms.</p></div>
+<div class="intro"><span class="greeting-mark" aria-hidden="true">✳</span><h1 id="heading">What's on your mind today?</h1><p>One prompt, any skill, your choice of AI.</p></div>
+<div class="thread" id="thread" hidden>
+<div class="turn"><div id="sent-prompt" class="user-bubble"></div></div>
+<div class="assistant-turn"><span class="assistant-mark" aria-hidden="true">✳</span><div class="assistant-content">
+<div id="results" class="results" hidden><h2>Ready to open</h2><p>Open each provider in its own tab. Paste the prompt if necessary, then compare their independent results.</p><div id="links" class="launchlinks"></div></div>
+</div></div>
+</div>
+<div class="dock">
 <div class="composer">
 <div id="selected-skills" class="chips" aria-label="Selected skills"></div>
 <div class="editorwrap">
 <label class="sr" for="prompt">Your request</label>
-<textarea id="prompt" rows="5" maxlength="50000" placeholder="Ask anything... Type @ to add a skill." aria-describedby="editor-hint" aria-autocomplete="list" aria-controls="mentions" spellcheck="true"></textarea>
+<textarea id="prompt" rows="1" maxlength="50000" placeholder="Ask anything or type @ to add a skill" aria-describedby="editor-hint" aria-autocomplete="list" aria-controls="mentions" spellcheck="true"></textarea>
 <div id="mentions" class="mentions" role="listbox" aria-label="Skill suggestions" hidden></div>
 </div>
-<div class="composerbar"><button id="mention" type="button" class="quiet"><b>@</b> Add skill</button><span id="editor-hint">Type @ to mention a skill</span><span id="chars">0</span></div>
-<div class="options"><label><input id="full" type="checkbox"> Include full skill instructions</label><label><input id="prefill" type="checkbox"> Allow prompt in provider URL</label></div>
-<div class="privacy">Prompts stay in this page until you copy or open a provider. URL mode can expose text in browser history and provider logs. Avoid secrets.</div>
+<div class="composerbar">
+<button id="mention" type="button" class="iconbutton" aria-label="Add skill" title="Add skill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<span id="editor-hint">Type @ for skills</span><span id="chars" class="sr">0</span>
+<div class="composer-right">
+<button id="provider-toggle" type="button" class="provider-toggle" aria-controls="provider-panel" aria-expanded="false"><span id="provider-label">ChatGPT</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+<button id="copy" type="button" class="iconbutton" title="Copy compiled prompt" aria-label="Copy compiled prompt" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+<button id="launch" type="button" class="send" aria-label="Prepare provider launch" title="Prepare provider launch (Ctrl/Command+Enter)" disabled><span class="sr">Prepare launch </span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>
 </div>
-<section class="providers" aria-labelledby="provider-heading">
-<div class="sectionhead"><div><h2 id="provider-heading">Choose your AI</h2><p>Select one or several to compare independently.</p></div><div class="smallactions"><button type="button" id="all" class="textbutton">Select all</button><button type="button" id="clear" class="textbutton">Clear</button></div></div>
+</div>
+</div>
+<section class="providers" id="provider-panel" aria-labelledby="provider-heading" hidden>
+<div class="sectionhead"><div><h2 id="provider-heading">Choose providers</h2><p>Choose one or more AI chats.</p></div><div class="smallactions"><button type="button" id="all" class="textbutton">All</button><button type="button" id="clear" class="textbutton">Clear</button></div></div>
 <div id="providers" class="providergrid"></div>
-<div class="actions"><button id="copy" type="button" class="secondary" disabled>Copy prompt</button><button id="launch" type="button" class="primary" disabled>Prepare launch <span aria-hidden="true">↗</span></button></div>
+<div class="options"><label><input id="full" type="checkbox"> Include full skill instructions</label><label><input id="prefill" type="checkbox"> Allow prompt in provider URL</label></div>
+<p class="privacy">URL mode may expose text in browser history and provider logs. Avoid secrets.</p>
+</section>
 <p id="status" class="status" role="status" aria-live="polite"></p>
-<div id="results" class="results" hidden><div class="sectionhead"><div><h2>Open your selected providers</h2><p>Each opens in a separate tab. Paste the prompt if needed; compare results yourself.</p></div></div><div id="links" class="launchlinks"></div></div>
-<details id="preview" class="preview"><summary>Preview final prompt <span id="preview-length"></span></summary><label class="sr" for="compiled">Generated prompt</label><textarea id="compiled" rows="8" readonly></textarea></details>
+<details id="preview" class="preview"><summary>Preview compiled prompt <span id="preview-length"></span></summary><label class="sr" for="compiled">Generated prompt</label><textarea id="compiled" rows="8" readonly></textarea></details>
+<section class="examples"><h2 class="sr">Try a skill</h2><div id="examples" class="examplegrid"></div></section>
+</div>
 </section>
-<section class="examples"><h2>Try a skill</h2><div id="examples" class="examplegrid"></div></section>
-</section>
-<footer>Skillspace is a launcher, not an AI chat service. Responses stay with the providers you choose.</footer>
+<footer>Skillspace opens external AI chats. Your prompts are not stored here.</footer>
 </main>
 </div>
 <noscript><p>This launcher needs JavaScript. Browse the <a href="https://github.com/next-dev-team/awesome-daily-tips">skills on GitHub</a>.</p></noscript>
-</body></html>
+</body>
+</html>
