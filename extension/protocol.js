@@ -10,11 +10,11 @@ function fresh(record,now=Date.now()){return !!record&&Number.isFinite(record.cr
 function validMode(mode){return ["manual","auto","live"].includes(mode);}
 function canStart(record){return !!record&&record.state==="ready"&&record.auto===true&&record.claimed!==true;}
 function canForward(mode,kind){return mode==="live"&&["partial","complete"].includes(kind)||mode==="auto"&&kind==="complete";}
-const BRIDGE_PROTOCOL=2, BRIDGE_CAPABILITIES=['ack','state-machine','heartbeat'];
+const BRIDGE_PROTOCOL=2, BRIDGE_CAPABILITIES=['ack','state-machine','heartbeat','panel-direct'];
 function legalTransition(from,to){return ({waiting:["waiting","filled","blocked"],filled:["submitted","blocked","uncertain"],submitted:["partial","uncertain"],partial:["partial","complete","uncertain"]})[from]?.includes(to)===true;}
 function allowedUpdate(record,event){return !!record&&record.job===event.job&&record.token===event.token&&record.provider===event.provider&&Number.isSafeInteger(event.seq)&&event.seq>record.seq&&legalTransition(record.state,event.kind)&&typeof event.text==="string"&&(!["partial","complete"].includes(event.kind)||event.text.trim().length>0)&&event.text.length<=200000;}
 function canAuthorizeClick(record,event,granted){return granted===true&&!!record&&record.state==="filled"&&record.claimed===true&&record.clickAuthorized!==true&&record.job===event.job&&record.token===event.token&&record.provider===event.provider;}
-const AUTO_PROVIDERS=["chatgpt","claude","gemini"];
+const AUTO_PROVIDERS=Object.keys(PROVIDERS);
 function identify(url){return Object.keys(PROVIDERS).find(id=>isProvider(url,id))||null;}
 function hostPattern(id){return new URL(PROVIDERS[id]).origin+"/*";}
 if(typeof module!=="undefined")module.exports={PROVIDERS,isSite,isProvider,validLaunch,fresh,TTL,validMode,canStart,canForward,allowedUpdate,canAuthorizeClick,legalTransition,BRIDGE_PROTOCOL,BRIDGE_CAPABILITIES,AUTO_PROVIDERS,identify,hostPattern};
